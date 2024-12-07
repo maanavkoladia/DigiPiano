@@ -1,0 +1,56 @@
+#include "BluetoothA2DPSource.h"
+#include "esp_task_wdt.h"
+#include <math.h> 
+#include <ArduinoQueue.h>
+#define c3_frequency  130.81
+// Define TX and RX pins for UART (change if needed)
+#define TXD1 19
+#define RXD1 21
+#define fifosize 5128
+uint8_t buffer[128];
+BluetoothA2DPSource a2dp_source;
+// Use Serial1 for UART communication
+HardwareSerial mySerial(2);
+//ArduinoQueue<uint8_t> fifo(fifosize); // Create a FIFO queue
+
+// The supported audio codec in ESP32 A2DP is SBC. SBC audio stream is encoded
+// from PCM data normally formatted as 44.1kHz sampling rate, two-channel 16-bit sample data
+int32_t get_data_frames(Frame *frame, int32_t frame_count) {
+    
+    unsigned short num = 0;
+
+    while(mySerial.available()< 128){} //busy wait
+    mySerial.readBytes(buffer, 128);//how many samples to read
+
+    for (int sample = 0; sample < frame_count; ++sample) {  // frame count = 128
+         num = (buffer[sample]) << 10;
+        frame[sample].channel1 = num;
+        frame[sample].channel2 = num;
+    }
+
+    return frame_count;
+}
+
+
+
+
+void setup() {
+  esp_task_wdt_deinit();
+  Serial.begin(1000000);
+    mySerial.begin(5000000, SERIAL_8N1, RXD1, TXD1);  // UART setup
+
+
+  
+  Serial.println("ESP32 UART Receiver");
+  a2dp_source.set_auto_reconnect(false);
+  a2dp_source.start("Galaxy Buds2 (4C7A)" , get_data_frames);// "Galaxy Buds2 (4C7A)" "Bose Colour SoundLink"
+  a2dp_source.set_volume(70);
+          
+
+}
+
+   
+void loop() {
+  // to prevent watchdog in release > 1.0.6
+  //delay(100);
+        }

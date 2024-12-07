@@ -1,0 +1,102 @@
+#include "BluetoothA2DPSource.h"
+#include "esp_task_wdt.h"
+#include <math.h> 
+#include <ArduinoQueue.h>
+#define c3_frequency  130.81
+// Define TX and RX pins for UART (change if needed)
+#define TXD1 19
+#define RXD1 21
+uint8_t buffer[128];
+int16_t prevNum = 0;
+BluetoothA2DPSource a2dp_source;
+// Use Serial1 for UART communication
+HardwareSerial mySerial(2);
+//ArduinoQueue<uint8_t> fifo(fifosize); // Create a FIFO queue
+
+// The supported audio codec in ESP32 A2DP is SBC. SBC audio stream is encoded
+// from PCM data normally formatted as 44.1kHz sampling rate, two-channel 16-bit sample data
+int32_t get_data_frames(Frame *frame, int32_t frame_count) {
+    
+    uint8_t lowerByte = 0;
+    uint8_t upperByte=0;
+    uint8_t nextlowerByte = 0;
+    uint8_t nextupperByte=0;
+    int16_t num=0;
+    int16_t next_num=0;
+
+    // uint16_t numSamples = frame_count / 2;
+    while(mySerial.available()< 64){} //busy wait for 32 11kHz samples split across 2 bytes (assuming tm4c sends just 1 sample)
+    mySerial.readBytes(buffer, 64);//how many samples to read (upper and lower bytes)
+    
+    int pos=0;//position in buffer 
+    int sample = 0;
+    while (sample < frame_count) {  // frame count = 128
+        lowerByte = (buffer[pos]);
+        pos++;
+        upperByte = (buffer[pos]);
+        pos++;
+        num= (uint16_t)lowerByte | ((uint16_t)upperByte<<8);
+
+        /* Known working code
+        frame[sample].channel1 = num;
+        frame[sample].channel2 = num;
+        sample++;
+        frame[sample].channel1 = num;
+        frame[sample].channel2 = num;
+        sample++;
+        frame[sample].channel1 = num;
+        frame[sample].channel2 = num;
+        sample++;
+        frame[sample].channel1 = num;
+        frame[sample].channel2 = num;
+        sample++;
+        */
+
+        frame[sample].channel1 = prevNum;
+        frame[sample].channel2 = prevNum;
+        sample++;
+        frame[sample].channel1 = prevNum + (num - prevNum)/4;
+        frame[sample].channel2 = prevNum + (num - prevNum)/4;
+        sample++;
+        frame[sample].channel1 = prevNum + 2*((num - prevNum)/4);
+        frame[sample].channel2 = prevNum + 2*((num - prevNum)/4);
+        sample++;
+        frame[sample].channel1 = prevNum + 3*((num - prevNum)/4);
+        frame[sample].channel2 = prevNum + 4*((num - prevNum)/4);
+        sample++;
+        prevNum = num;
+
+
+
+
+
+
+        
+    }
+
+    return frame_count;
+}
+
+
+
+
+void setup() {
+  esp_task_wdt_deinit();
+  Serial.begin(1000000);
+    mySerial.begin(5000000, SERIAL_8N1, RXD1, TXD1);  // UART setup
+
+
+  
+  Serial.println("ESP32 UART Receiver");
+  a2dp_source.set_auto_reconnect(false);
+  a2dp_source.start("Bose Colour SoundLink" , get_data_frames);// "Galaxy Buds2 (4C7A)" "Bose Colour SoundLink"
+  a2dp_source.set_volume(70);
+          
+
+}
+
+   
+void loop() {
+  // to prevent watchdog in release > 1.0.6
+  //delay(100);
+        }
