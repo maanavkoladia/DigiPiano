@@ -25,5 +25,9 @@ The **DigiPiano** is a velocity-sensitive digital piano designed using **STM32**
 - Bluetooth functionality allows for wireless connectivity, enabling modern use cases such as streaming to Bluetooth speakers or devices.
 - The hardware design incorporates a custom PCB layout for compactness and reliability, integrating sensors, microcontrollers, and audio components.
 
+## See It in Action
+
+Check out this [Instagram reel](https://www.instagram.com/reel/DDNmyurpquJ/?igsh=Y2NvNWVrb3MxazM1) to see the DigiPiano in action!
+
 The DigiPiano is a versatile and user-friendly project, blending traditional piano functionality with modern digital and IoT capabilities.
 
